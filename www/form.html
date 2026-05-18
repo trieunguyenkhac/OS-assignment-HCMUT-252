@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AsynapRous Chat - Main App</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        color: #2c3e50;
+      }
+
+      header h1 {
+        font-size: 2.5em;
+        margin-bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .user-info {
+        text-align: right;
+      }
+
+      .user-info .label {
+        font-size: 0.85em;
+        color: #7f8c8d;
+      }
+
+      .user-info .value {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .btn-logout {
+        background: #ef5350;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-logout:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
+        background: #e53935;
+      }
+
+      header p {
+        color: #7f8c8d;
+        font-size: 0.95em;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease;
+      }
+
+      .card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      }
+
+      .card h2 {
+        font-size: 1.3em;
+        margin-bottom: 16px;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .card h2::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 24px;
+        border-radius: 2px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .form-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .form-row:last-child {
+        margin-bottom: 0;
+      }
+
+      input[type="text"],
+      input[type="password"],
+      input[type="number"],
+      select {
+        flex: 1;
+        min-width: 120px;
+        padding: 10px 12px;
+        border: 1px solid #e0e6ed;
+        border-radius: 6px;
+        font-size: 0.95em;
+        transition:
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      input[type="text"]:focus,
+      input[type="password"]:focus,
+      input[type="number"]:focus,
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .peer-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .peer-badge {
+        padding: 8px 12px;
+        background: #f0f2f5;
+        border: 2px solid #e0e6ed;
+        border-radius: 6px;
+        font-size: 0.85em;
+        font-weight: 500;
+        color: #2c3e50;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .peer-badge:hover {
+        border-color: #667eea;
+        background: #667eea;
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .peer-badge.selected {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.95em;
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-secondary {
+        background: #f0f2f5;
+        color: #2c3e50;
+        border: 1px solid #e0e6ed;
+      }
+
+      .btn-secondary:hover {
+        background: #e0e6ed;
+        transform: translateY(-2px);
+      }
+
+      .chat-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-top: 24px;
+      }
+
+      @media (max-width: 1024px) {
+        .chat-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .chat-section {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chat-section h3 {
+        font-size: 1.1em;
+        color: #2c3e50;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .chat-box {
+        flex: 1;
+        min-height: 320px;
+        background: #f8f9fc;
+        border: 1px solid #e0e6ed;
+        border-radius: 8px;
+        padding: 16px;
+        overflow-y: auto;
+        font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+        font-size: 0.9em;
+        line-height: 1.6;
+        color: #2c3e50;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .chat-box::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .chat-box::-webkit-scrollbar-track {
+        background: #f8f9fc;
+        border-radius: 4px;
+      }
+
+      .chat-box::-webkit-scrollbar-thumb {
+        background: #d0d7e0;
+        border-radius: 4px;
+      }
+
+      .chat-box::-webkit-scrollbar-thumb:hover {
+        background: #bcc5d0;
+      }
+
+      .message-input-row {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .message-input-row input {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .message-input-row button {
+        flex: 0 0 auto;
+      }
+
+      #status {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 16px 24px;
+        border-radius: 8px;
+        background: #ecf0f1;
+        color: #2c3e50;
+        font-weight: 500;
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 9999;
+        max-width: 90%;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideDown 0.3s ease-out;
+      }
+
+      #status.hidden {
+        display: none !important;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateX(-50%) translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+      }
+
+      #status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      #status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .label {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.9em;
+        min-width: 80px;
+      }
+
+      .info-text {
+        font-size: 0.85em;
+        color: #7f8c8d;
+        margin-top: 8px;
+        padding-left: 4px;
+      }
+
+      footer {
+        text-align: center;
+        margin-top: 40px;
+        color: #7f8c8d;
+        font-size: 0.9em;
+        padding-bottom: 20px;
+      }
+    </style>
+    <script>
+      let activeChannel = "general";
+      let currentPeer = null;
+      let selectedChatPeer = null;
+      let availablePeers = [];
+      let availableAgents = [];
+
+      // Protected route: check if user is authenticated
+      async function checkAuthentication() {
+        try {
+          const response = await fetch("/whoami", {
+            credentials: "same-origin",
+          });
+          const data = await response.json();
+          if (!response.ok || !data.authenticated) {
+            window.location.href = "/login.html";
+            return;
+          }
+          currentPeer = data.user;
+          document.getElementById("peerId").value = data.user;
+          document.getElementById("currentUser").textContent = data.user;
+          document.getElementById("agentSender").value = data.user;
+          return data.user;
+        } catch (err) {
+          window.location.href = "/login.html";
+        }
+      }
+
+      function logout() {
+        if (confirm("Are you sure you want to logout?")) {
+          // Clear session by redirecting and invalidating
+          window.location.href = "/login.html";
+        }
+      }
+
+      async function request(path, options = {}) {
+        const response = await fetch(path, {
+          credentials: "same-origin",
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+        });
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+        if (!response.ok) {
+          throw new Error(data.error || data.raw || "HTTP " + response.status);
+        }
+        return data;
+      }
+
+      let statusTimeout;
+
+      function status(message, type = "info") {
+        const el = document.getElementById("status");
+        el.textContent = message;
+        el.className = type;
+
+        el.classList.remove("hidden");
+
+        if (statusTimeout) clearTimeout(statusTimeout);
+
+        statusTimeout = setTimeout(() => {
+          el.textContent = "";
+          el.className = "hidden";
+        }, 2000);
+      }
+
+      async function registerPeer() {
+        const peer_id = document.getElementById("peerId").value;
+        const ip = document.getElementById("peerIp").value || "127.0.0.1";
+        const port = Number(document.getElementById("peerPort").value);
+
+        if (!peer_id || !ip || !port) {
+          status("✗ Peer ID, IP, and Port are required", "error");
+          return;
+        }
+
+        try {
+          const data = await request("/submit-info", {
+            method: "POST",
+            body: JSON.stringify({ peer_id, ip, port }),
+          });
+          status(
+            `✓ Registered peer: ${data.peer.peer_id} at ${ip}:${port}`,
+            "success",
+          );
+          currentPeer = peer_id;
+          await loadAvailablePeers();
+        } catch (err) {
+          status(`✗ Registration failed: ${err.message}`, "error");
+        }
+      }
+
+      async function loadAvailablePeers() {
+        try {
+          const data = await request("/get-list", {
+            method: "GET",
+          });
+          if (data.peers && Array.isArray(data.peers)) {
+            availablePeers = data.peers;
+            availableAgents = data.peers
+              .map((p) => {
+                if (typeof p === "object" && p.peer_id) return p.peer_id;
+                return p;
+              })
+              .filter(Boolean);
+
+            updatePeerList();
+            updateAgentSelector();
+          }
+        } catch (err) {
+          console.error("Failed to load peers:", err);
+        }
+      }
+
+      function updatePeerList() {
+        const container = document.getElementById("peerListContainer");
+        if (!container) return;
+
+        container.innerHTML = availablePeers
+          .map((p) => {
+            const peerId = typeof p === "object" ? p.peer_id : p;
+            const selected = selectedChatPeer === peerId ? "selected" : "";
+            return `<div class="peer-badge ${selected}" onclick="selectPeer('${peerId}')" title="${peerId}">👤 ${peerId}</div>`;
+          })
+          .join("");
+      }
+
+      function updateAgentSelector() {
+        const selector = document.getElementById("agentSender");
+        const currentValue = selector.value;
+        const existingOptions = Array.from(selector.options).map(
+          (o) => o.value,
+        );
+
+        availableAgents.forEach((agent) => {
+          if (!existingOptions.includes(agent)) {
+            const option = document.createElement("option");
+            option.value = agent;
+            option.textContent = agent;
+            selector.appendChild(option);
+          }
+        });
+      }
+
+      function selectPeer(peerId) {
+        selectedChatPeer = peerId;
+        document.getElementById("targetPeer").value = peerId;
+        updatePeerList();
+        status(`✓ Chat peer selected: ${peerId}`, "success");
+      }
+
+      async function joinChannel() {
+        try {
+          activeChannel = document.getElementById("channel").value || "general";
+          const peer_id = document.getElementById("peerId").value;
+          await request("/add-list", {
+            method: "POST",
+            body: JSON.stringify({ channel: activeChannel, peer_id }),
+          });
+          status(`✓ Joined channel: ${activeChannel}`, "success");
+          await fetchMessages();
+        } catch (err) {
+          status(`✗ Join failed: ${err.message}`, "error");
+        }
+      }
+
+      async function sendBroadcast() {
+        try {
+          activeChannel = document.getElementById("channel").value || "general";
+          const text = document.getElementById("broadcastMessage").value.trim();
+          if (!text) {
+            status("✗ Message cannot be empty", "error");
+            return;
+          }
+
+          const peer_id = document.getElementById("peerId").value;
+          await request("/broadcast-peer", {
+            method: "POST",
+            body: JSON.stringify({ channel: activeChannel, peer_id, text }),
+          });
+          document.getElementById("broadcastMessage").value = "";
+          status(`✓ Broadcast sent to ${activeChannel}`, "success");
+          await fetchMessages();
+        } catch (err) {
+          status(`✗ Broadcast failed: ${err.message}`, "error");
+        }
+      }
+
+      async function sendDirect() {
+        try {
+          const target = document.getElementById("targetPeer").value.trim();
+          const text = document.getElementById("directMessage").value.trim();
+          const from = document.getElementById("agentSender").value.trim();
+
+          if (!target) {
+            status("✗ Target peer is required", "error");
+            return;
+          }
+          if (!text) {
+            status("✗ Message cannot be empty", "error");
+            return;
+          }
+          if (!from) {
+            status("✗ Agent sender is required", "error");
+            return;
+          }
+
+          await request("/send-peer", {
+            method: "POST",
+            body: JSON.stringify({ target, text, from }),
+          });
+          document.getElementById("directMessage").value = "";
+          status(`✓ Direct message sent from ${from} to ${target}`, "success");
+          await fetchMessages("direct");
+        } catch (err) {
+          status(`✗ Direct message failed: ${err.message}`, "error");
+        }
+      }
+
+      async function fetchMessages(channel = activeChannel) {
+        try {
+          const data = await request(
+            "/messages?channel=" + encodeURIComponent(channel),
+            {
+              method: "GET",
+            },
+          );
+          const lines = data.messages.map((msg) => {
+            const who = msg.from || "peer";
+            const target = msg.to ? ` → ${msg.to}` : "";
+            const time = new Date(
+              (msg.created_at || 0) * 1000,
+            ).toLocaleTimeString();
+            return `[${time}] ${who}${target}: ${msg.text || ""}`;
+          });
+
+          if (channel === "direct") {
+            document.getElementById("directMessages").textContent =
+              lines.join("\n");
+          } else {
+            document.getElementById("broadcastMessages").textContent =
+              lines.join("\n");
+          }
+        } catch (err) {
+          console.error("Fetch messages failed:", err);
+        }
+      }
+
+      window.addEventListener("load", async () => {
+        await checkAuthentication();
+        await loadAvailablePeers();
+        setInterval(() => {
+          fetchMessages().catch(() => {});
+          fetchMessages("direct").catch(() => {});
+          loadAvailablePeers().catch(() => {});
+        }, 2000);
+      });
+    </script>
+  </head>
+  <body>
+    <!-- STATUS BAR (Fixed at Top) -->
+    <div id="status" class="hidden"></div>
+
+    <main>
+      <header>
+        <div>
+          <h1>🚀 AsynapRous Chat</h1>
+          <p>Hybrid Client-Server & Peer-to-Peer Communication</p>
+        </div>
+        <div class="header-right">
+          <div class="user-info">
+            <div class="label">Logged in as:</div>
+            <div class="value" id="currentUser">Loading...</div>
+          </div>
+          <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+      </header>
+
+      <!-- PEER REGISTRATION SECTION -->
+      <div class="card">
+        <h2>Peer Registration</h2>
+        <div class="form-row">
+          <span class="label">Peer ID:</span>
+          <input id="peerId" type="text" placeholder="peer-a" value="peer-a" />
+          <span class="label">IP Address:</span>
+          <input
+            id="peerIp"
+            type="text"
+            placeholder="127.0.0.1"
+            value="127.0.0.1"
+          />
+          <span class="label">Port:</span>
+          <input id="peerPort" type="number" placeholder="9101" value="9101" />
+          <button class="btn-primary" onclick="registerPeer()">
+            Register Peer
+          </button>
+        </div>
+        <div class="info-text">
+          Register your peer in the network to participate in P2P communication
+        </div>
+      </div>
+
+      <!-- CHANNELS SECTION -->
+      <div class="card">
+        <h2>Channels</h2>
+        <div class="form-row">
+          <span class="label">Channel:</span>
+          <input
+            id="channel"
+            type="text"
+            placeholder="general"
+            value="general"
+          />
+          <button class="btn-secondary" onclick="joinChannel()">
+            Join Channel
+          </button>
+        </div>
+        <div class="info-text">
+          Join a broadcast channel to send/receive group messages
+        </div>
+      </div>
+
+      <!-- MESSAGING SECTION -->
+      <div class="card">
+        <h2>Messaging</h2>
+        <div class="chat-container">
+          <!-- BROADCAST SECTION -->
+          <div class="chat-section">
+            <h3>📢 Broadcast (Group)</h3>
+            <div class="chat-box" id="broadcastMessages"></div>
+            <div class="message-input-row">
+              <input
+                id="broadcastMessage"
+                type="text"
+                placeholder="Type your group message..."
+              />
+              <button class="btn-primary" onclick="sendBroadcast()">
+                Send
+              </button>
+            </div>
+            <div class="info-text">
+              Send message to all peers in the channel (via server)
+            </div>
+          </div>
+
+          <!-- DIRECT MESSAGE SECTION -->
+          <div class="chat-section">
+            <h3>💬 Direct Message (P2P)</h3>
+            <div class="chat-box" id="directMessages"></div>
+
+            <div style="margin-top: 12px; margin-bottom: 12px">
+              <label
+                style="
+                  display: block;
+                  font-weight: 600;
+                  color: #2c3e50;
+                  margin-bottom: 8px;
+                  font-size: 0.9em;
+                "
+              >
+                Available Peers:
+              </label>
+              <div class="peer-list" id="peerListContainer"></div>
+            </div>
+
+            <div class="form-row" style="margin-bottom: 12px">
+              <select id="agentSender">
+                <option value="">-- Select Agent --</option>
+                <option value="guest">guest</option>
+                <option value="admin">admin</option>
+              </select>
+              <input
+                id="targetPeer"
+                type="text"
+                placeholder="Or paste peer ID (e.g., peer-b)"
+              />
+            </div>
+
+            <div class="message-input-row">
+              <input
+                id="directMessage"
+                type="text"
+                placeholder="Type your direct message..."
+              />
+              <button class="btn-primary" onclick="sendDirect()">Send</button>
+            </div>
+            <div class="info-text">
+              Select a peer or enter ID, choose an agent, then send direct
+              message (P2P connection)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>🔒 Secure networking • ⚡ Async I/O • 🚀 P2P Architecture</p>
+      </footer>
+    </main>
+  </body>
+</html>
