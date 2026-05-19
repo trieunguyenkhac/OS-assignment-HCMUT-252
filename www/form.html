@@ -593,12 +593,18 @@
 
       async function fetchMessages(channel = activeChannel) {
         try {
-          const data = await request(
-            "/messages?channel=" + encodeURIComponent(channel),
-            {
-              method: "GET",
-            },
-          );
+          let endpoint;
+          if (channel === "direct") {
+            // Private messages: fetch từ /direct-messages endpoint riêng
+            endpoint = "/direct-messages";
+          } else {
+            // Broadcast messages: fetch từ /messages endpoint
+            endpoint = "/messages?channel=" + encodeURIComponent(channel);
+          }
+
+          const data = await request(endpoint, {
+            method: "GET",
+          });
           const lines = data.messages.map((msg) => {
             const who = msg.from || "peer";
             const target = msg.to ? ` → ${msg.to}` : "";
