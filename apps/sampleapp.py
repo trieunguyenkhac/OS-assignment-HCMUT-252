@@ -39,8 +39,9 @@ app = AsynapRous()
 USERS = {"admin": "admin", "guest": "guest"}
 SESSIONS = {}
 PEERS = {}
-CHANNELS = {"general": set()}
-MESSAGES = {"general": []}
+CHANNELS = {"general": set()}  # Membership: {"general": {"admin", "guest"}}
+MESSAGES = {"general": []}     # Channel messages
+DIRECT_MESSAGES = []            # Private messages: [{"from": ..., "to": ..., "text": ...}]
 STATE_LOCK = threading.RLock()
 
 
@@ -146,6 +147,8 @@ def login(headers="guest", body="anonymous"):
     token = uuid.uuid4().hex
     with STATE_LOCK:
         SESSIONS[token] = username
+        # Auto-add user to "general" channel
+        CHANNELS.setdefault("general", set()).add(username)
     return _json_response(
         {"message": "Welcome to the RESTful TCP WebApp", "user": username},
         200,
@@ -268,7 +271,21 @@ def messages(headers="guest", body="anonymous"):
 
     data = _parse_body(body, headers)
     channel = data.get("channel", "general")
+    # Block fetching direct messages from /messages endpoint
+    if channel == "direct":
+        return _json_response({"error": "use /direct-messages endpoint instead"}, 400)
+    
     with STATE_LOCK:
+        # Kiểm tra xem user có join channel này không
+        channel_members = CHANNELS.get(channel, set())
+        if user not in channel_members:
+            return _json_response({
+                "error": f"user '{user}' not a member of channel '{channel}'",
+                "channel": channel,
+                "messages": []
+            }, 403)
+        
+        # Chỉ trả messages của channel này
         result = list_messages(MESSAGES, channel)
     return _json_response({"channel": channel, "messages": result})
 
@@ -299,6 +316,16 @@ async def broadcast_peer(headers="guest", body="anonymous"):
     data = _parse_body(body, headers)
     channel = data.get("channel", "general")
     sender = data.get("peer_id") or user
+    
+    with STATE_LOCK:
+        # Kiểm tra sender có trong channel không
+        channel_members = CHANNELS.get(channel, set())
+        if sender not in channel_members:
+            return _json_response({
+                "error": f"peer '{sender}' not a member of channel '{channel}'",
+                "channel": channel
+            }, 403)
+    
     message = build_channel_message(
         sender,
         channel,
@@ -337,13 +364,15 @@ async def send_peer(headers="guest", body="anonymous"):
     with STATE_LOCK:
         peer = dict(PEERS[target_id]) if target_id in PEERS else None
 
+    sender = data.get("from") or user
     message = build_direct_message(
-        data.get("from") or user,
+        sender,
         target_id,
         data.get("message") or data.get("text", ""),
     )
     with STATE_LOCK:
-        append_message(MESSAGES, "direct", message)
+        # Lưu vào global list - sẽ filter khi fetch theo sender/receiver
+        DIRECT_MESSAGES.append(message)
 
     if peer:
         print(f"[DEBUG] CONNECTING TO {peer['ip']}:{peer['port']}")
@@ -370,16 +399,41 @@ async def send_peer(headers="guest", body="anonymous"):
 @app.route('/receive-peer/', methods=['POST'])
 def receive_peer(headers="guest", body="anonymous"):
     data = _parse_body(body, headers)
+    sender = data.get("from", "peer")
+    receiver = data.get("to")
     message = {
-        "from": data.get("from", "peer"),
-        "to": data.get("to"),
+        "from": sender,
+        "to": receiver,
         "text": data.get("message") or data.get("text", ""),
         "created_at": data.get("created_at", time.time()),
         "source": "p2p",
     }
     with STATE_LOCK:
-        append_message(MESSAGES, "direct", message)
+        # Lưu vào global list - sẽ filter khi fetch
+        DIRECT_MESSAGES.append(message)
     return _json_response({"message": "peer message received", "data": message}, 201)
+
+
+@app.route('/direct-messages', methods=['GET', 'POST'])
+@app.route('/direct-messages/', methods=['GET', 'POST'])
+def direct_messages(headers="guest", body="anonymous"):
+    """Fetch direct/private messages cho user hiện tại.
+    
+    Chỉ trả những messages mà user là sender hoặc receiver.
+    """
+    user, error = _require_user(headers)
+    if error:
+        return error
+
+    with STATE_LOCK:
+        # Lọc: chỉ messages mà user là sender hoặc receiver
+        result = [
+            msg for msg in DIRECT_MESSAGES
+            if msg.get("from") == user or msg.get("to") == user
+        ]
+    
+    return _json_response({"user": user, "messages": result})
+
 
 def create_sampleapp(ip, port):
     # Prepare and launch the RESTful application
