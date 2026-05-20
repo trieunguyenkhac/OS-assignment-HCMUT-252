@@ -173,7 +173,4 @@ peer port: 9101
 
 7. Gửi direct message hoặc broadcast message.
 
-Khi giảng viên hỏi:
-
-- Non-blocking ở đâu: chỉ vào `asyncio.start_server()`, `await reader...`, `await writer.drain()`.
 - P2P ở đâu: chỉ vào `peer_server.py` và `peer_client.py`.
