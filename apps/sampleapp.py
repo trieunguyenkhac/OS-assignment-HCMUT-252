@@ -111,6 +111,20 @@ def _require_user(headers):
         {"WWW-Authenticate": 'Basic realm="AsynapRous"'},
     )
 
+
+def _current_peer(user):
+    """Lấy peer_id từ user (username).
+    
+    Tìm peer_id trong PEERS dựa trên user field.
+    Nếu không tìm được, fallback về user (chưa register peer).
+    """
+    with STATE_LOCK:
+        for peer_id, peer in PEERS.items():
+            if peer.get("user") == user:
+                return peer_id
+    return user
+
+
 @app.route('/whoami', methods=['GET', 'POST'])
 @app.route('/whoami/', methods=['GET', 'POST'])
 def whoami(headers="guest", body="anonymous"):
@@ -147,8 +161,6 @@ def login(headers="guest", body="anonymous"):
     token = uuid.uuid4().hex
     with STATE_LOCK:
         SESSIONS[token] = username
-        # Auto-add user to "general" channel
-        CHANNELS.setdefault("general", set()).add(username)
     return _json_response(
         {"message": "Welcome to the RESTful TCP WebApp", "user": username},
         200,
@@ -276,11 +288,14 @@ def messages(headers="guest", body="anonymous"):
         return _json_response({"error": "use /direct-messages endpoint instead"}, 400)
     
     with STATE_LOCK:
-        # Kiểm tra xem user có join channel này không
+        # Lấy peer_id từ user hiện tại
+        peer_id = _current_peer(user)
+        
+        # Kiểm tra xem peer có join channel này không
         channel_members = CHANNELS.get(channel, set())
-        if user not in channel_members:
+        if peer_id not in channel_members:
             return _json_response({
-                "error": f"user '{user}' not a member of channel '{channel}'",
+                "error": f"peer '{peer_id}' not a member of channel '{channel}'",
                 "channel": channel,
                 "messages": []
             }, 403)
@@ -315,7 +330,7 @@ async def broadcast_peer(headers="guest", body="anonymous"):
 
     data = _parse_body(body, headers)
     channel = data.get("channel", "general")
-    sender = data.get("peer_id") or user
+    sender = data.get("peer_id") or _current_peer(user)
     
     with STATE_LOCK:
         # Kiểm tra sender có trong channel không
@@ -364,7 +379,7 @@ async def send_peer(headers="guest", body="anonymous"):
     with STATE_LOCK:
         peer = dict(PEERS[target_id]) if target_id in PEERS else None
 
-    sender = data.get("from") or user
+    sender = data.get("from") or _current_peer(user)
     message = build_direct_message(
         sender,
         target_id,
@@ -419,20 +434,23 @@ def receive_peer(headers="guest", body="anonymous"):
 def direct_messages(headers="guest", body="anonymous"):
     """Fetch direct/private messages cho user hiện tại.
     
-    Chỉ trả những messages mà user là sender hoặc receiver.
+    Chỉ trả những messages mà peer_id là sender hoặc receiver.
     """
     user, error = _require_user(headers)
     if error:
         return error
 
     with STATE_LOCK:
-        # Lọc: chỉ messages mà user là sender hoặc receiver
+        # Lấy peer_id từ user hiện tại
+        peer_id = _current_peer(user)
+        
+        # Lọc: chỉ messages mà peer_id là sender hoặc receiver
         result = [
             msg for msg in DIRECT_MESSAGES
-            if msg.get("from") == user or msg.get("to") == user
+            if msg.get("from") == peer_id or msg.get("to") == peer_id
         ]
     
-    return _json_response({"user": user, "messages": result})
+    return _json_response({"user": user, "peer_id": peer_id, "messages": result})
 
 
 def create_sampleapp(ip, port):
